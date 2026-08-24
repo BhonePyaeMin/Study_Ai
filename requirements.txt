@@ -3,3 +3,5 @@ python-dotenv==1.0.1
 # google-genai is the new Python 3.14-compatible Gemini SDK (replaces google-generativeai)
 google-genai>=2.18.1
 pypdf>=4.0.0
+gunicorn==21.2.0  
+ 
