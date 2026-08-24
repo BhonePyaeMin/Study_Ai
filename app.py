@@ -34,14 +34,14 @@ def login_required(f):
     return decorated_function
 
 # ── Gemini AI initialisation ─────────────────────────────────────────────────
-_GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
+_GEMINI_KEY = input("Please enter your Gemini API key: ").strip()
 _PLACEHOLDER = "your-gemini-api-key-here"
 _gemini_model = None          # kept server-side; never sent to client
 
 
 def _init_gemini() -> bool:
     """
-    Configure the Gemini client using the key from .env.
+    Configure the Gemini client using the user-provided API key.
     Returns True if successful, False otherwise.
     The API key is read once at startup and is NEVER exposed to the frontend.
     """
@@ -50,7 +50,7 @@ def _init_gemini() -> bool:
     if not _GEMINI_KEY or _GEMINI_KEY == _PLACEHOLDER:
         print(
             "[StudyAI] [WARN] Gemini API key not configured. "
-            "Set GEMINI_API_KEY in your .env file."
+            "Please restart the app and provide a valid API key."
         )
         return False
 
