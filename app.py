@@ -34,7 +34,7 @@ def login_required(f):
     return decorated_function
 
 # ── Gemini AI initialisation ─────────────────────────────────────────────────
-_GEMINI_KEY = input("Please enter your Gemini API key: ").strip()
+_GEMINI_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 _PLACEHOLDER = "your-gemini-api-key-here"
 _gemini_model = None          # kept server-side; never sent to client
 
