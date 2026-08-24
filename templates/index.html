@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}AI Study Assistant — Learn Smarter{% endblock %}
+{% block description %}An AI-powered study assistant for university students. Get instant explanations, quizzes, and study plans.{% endblock %}
+
+{% block content %}
+
+<!-- ── Hero ──────────────────────────────────────────────────── -->
+<section class="hero">
+  <!-- Floating 3D background orbs -->
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
+
+  <div class="hero-content">
+    <span class="hero-badge"><i data-lucide="sparkles"></i> Powered by Gemini AI</span>
+    <h1 class="hero-title">
+      Study Smarter,<br />
+      Not <span class="highlight">Harder</span>
+    </h1>
+    <p class="hero-subtitle" style="animation: fadeInUp .7s .2s var(--ease-out) both;">
+      Your personal AI tutor, available 24/7. Get instant explanations,
+      generate practice quizzes, and build personalised study plans —
+      all in one place.
+    </p>
+    <div class="hero-actions" style="animation: fadeInUp .7s .35s var(--ease-out) both;">
+      <a href="/dashboard" class="btn btn-primary btn-lg">Start Studying →</a>
+      <a href="/about" class="btn btn-ghost btn-lg">Learn More</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ──────────────────────────────────────────────── -->
+<section class="features" id="features">
+  <div class="section-header">
+    <span class="section-label">Features</span>
+    <h2 class="section-title">Everything you need to excel</h2>
+    <p class="section-subtitle">
+      Designed specifically for university students who want to get the
+      most out of every study session.
+    </p>
+  </div>
+
+  <div class="cards-grid">
+    <div class="card">
+      <span class="card-icon"><i data-lucide="bot"></i></span>
+      <h3 class="card-title">AI Tutor</h3>
+      <p class="card-desc">
+        Ask any question and receive clear, accurate explanations
+        tailored to your level of understanding.
+      </p>
+    </div>
+    <div class="card">
+      <span class="card-icon"><i data-lucide="pencil-line"></i></span>
+      <h3 class="card-title">Practice Quizzes</h3>
+      <p class="card-desc">
+        Generate custom quizzes from your notes or any topic to test
+        and reinforce your knowledge.
+      </p>
+    </div>
+    <div class="card">
+      <span class="card-icon"><i data-lucide="calendar-days"></i></span>
+      <h3 class="card-title">Study Planner</h3>
+      <p class="card-desc">
+        Get a personalised study schedule that adapts to your deadlines
+        and learning goals.
+      </p>
+    </div>
+    <div class="card">
+      <span class="card-icon"><i data-lucide="book-open"></i></span>
+      <h3 class="card-title">Note Summariser</h3>
+      <p class="card-desc">
+        Paste your lecture notes and get concise summaries with key
+        concepts highlighted.
+      </p>
+    </div>
+    <div class="card">
+      <span class="card-icon"><i data-lucide="trending-up"></i></span>
+      <h3 class="card-title">Progress Tracking</h3>
+      <p class="card-desc">
+        Monitor your study sessions, quiz scores, and topic mastery
+        over time.
+      </p>
+    </div>
+    <div class="card">
+      <span class="card-icon"><i data-lucide="shield-check"></i></span>
+      <h3 class="card-title">Privacy First</h3>
+      <p class="card-desc">
+        Your study data stays yours. We never sell your information to
+        third parties.
+      </p>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

@@ -1,0 +1,596 @@
+{% extends "base.html" %}
+
+{% block title %}Study Notes — Study Assistant{% endblock %}
+{% block description %}Paste your study material and use AI to summarize, explain, or generate quizzes and flashcards.{% endblock %}
+
+{% block content %}
+<div class="notes-layout">
+  
+  <!-- Sidebar -->
+  <aside class="saved-sidebar">
+    <div class="sidebar-header">
+      <h3><i data-lucide="bookmark"></i> Saved Notes</h3>
+    </div>
+    <div id="savedNotesList" class="saved-list">
+      <div style="color: var(--clr-text-muted); font-size: 0.85rem;">Loading...</div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="notes-main">
+
+  <div class="notes-header">
+    <div class="notes-header-left">
+      <h1 class="test-title">Study Notes</h1>
+      <p class="test-subtitle">
+        Paste your study material below and use the AI tools to process it.
+      </p>
+    </div>
+  </div>
+
+  <div class="test-grid">
+
+    <!-- Left: Input & Actions -->
+    <div class="test-panel test-panel-left">
+      <div class="panel-head">
+        <span class="panel-title"><i data-lucide="file-text"></i> Your Material</span>
+        <span class="char-counter"><span id="charCount">0</span> / 10 000</span>
+      </div>
+
+      <div class="panel-body">
+        <textarea
+          id="notesInput"
+          class="question-textarea"
+          placeholder="Paste your study material here (e.g., lecture notes, textbook excerpts)..."
+          maxlength="10000"
+          rows="10"
+        ></textarea>
+
+        <div class="action-grid">
+          <button class="btn btn-primary btn-ask" onclick="processNotes('summarize')" id="btn-summarize">
+            <i data-lucide="align-left"></i> Summarize
+          </button>
+          <button class="btn btn-primary btn-ask" onclick="processNotes('key_points')" id="btn-key_points">
+            <i data-lucide="list"></i> Key Points
+          </button>
+          <button class="btn btn-primary btn-ask" onclick="processNotes('explain')" id="btn-explain">
+            <i data-lucide="help-circle"></i> Explain Simply
+          </button>
+          <button class="btn btn-primary btn-ask" onclick="processNotes('quiz')" id="btn-quiz">
+            <i data-lucide="help-circle"></i> Generate Quiz
+          </button>
+          <button class="btn btn-primary btn-ask" onclick="processNotes('flashcards')" id="btn-flashcards">
+            <i data-lucide="layers"></i> Flashcards
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: AI Response -->
+    <div class="test-panel test-panel-right">
+      <div class="panel-head">
+        <span class="panel-title"><i data-lucide="bot"></i> AI Result</span>
+        <button class="btn-copy" onclick="copyResult()" id="copyBtn" style="display:none">
+          <i data-lucide="copy"></i> Copy
+        </button>
+      </div>
+
+      <div class="panel-body" style="flex:1; display:flex; flex-direction:column;">
+        
+        <!-- Idle state -->
+        <div class="resp-idle" id="respIdle">
+          <div class="resp-idle-icon"><i data-lucide="sparkles"></i></div>
+          <p>Select an action to process your notes.</p>
+        </div>
+
+        <!-- Loading state -->
+        <div class="resp-loading" id="respLoading" style="display:none">
+          <div class="spinner"></div>
+          <p id="loadingMsg">Processing material…</p>
+        </div>
+
+        <!-- Success state -->
+        <div class="resp-success" id="respSuccess" style="display:none">
+          <div class="answer-content" id="answerText"></div>
+        </div>
+
+        <!-- Error state -->
+        <div class="resp-error" id="respError" style="display:none">
+          <div class="error-icon"><i data-lucide="alert-circle"></i></div>
+          <strong>Error</strong>
+          <p id="errorText"></p>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /test-grid -->
+  </div><!-- /notes-main -->
+</div><!-- /notes-layout -->
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* ── Notes page layout ─────────────────────────────────────── */
+.notes-layout {
+  display: flex;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 5.5rem 2rem 3rem;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.saved-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--gradient-card);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+}
+
+.sidebar-header h3 {
+  font-size: 1rem;
+  color: var(--clr-text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-header h3 i {
+  width: 18px;
+  height: 18px;
+  color: var(--clr-accent);
+}
+
+.saved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.saved-item {
+  padding: 0.75rem;
+  background: var(--clr-bg-elevated);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.saved-item:hover {
+  border-color: var(--clr-accent);
+}
+
+.saved-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.saved-item-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--clr-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saved-item-date {
+  font-size: 0.7rem;
+  color: var(--clr-text-muted);
+  margin-top: 0.25rem;
+}
+
+.btn-delete-saved {
+  background: none;
+  border: none;
+  color: var(--clr-red);
+  cursor: pointer;
+  padding: 0.25rem;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.btn-delete-saved:hover {
+  opacity: 1;
+}
+
+.btn-delete-saved i {
+  width: 14px;
+  height: 14px;
+}
+
+.notes-main {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .notes-layout {
+    flex-direction: column;
+  }
+  .saved-sidebar {
+    width: 100%;
+  }
+}
+
+.notes-header {
+  margin-bottom: 2rem;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.btn-ask {
+  justify-content: center;
+  font-size: 0.85rem;
+  padding: 0.6rem 0.8rem;
+}
+.btn-ask:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Reusing test_ai.html styles for panels */
+.test-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  align-items: stretch;
+}
+@media (max-width: 900px) {
+  .test-grid { grid-template-columns: 1fr; }
+}
+
+.test-panel {
+  background: var(--gradient-card);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--clr-border);
+  background: var(--clr-bg-elevated);
+}
+
+.panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--clr-text-main);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.panel-title i { width: 16px; height: 16px; color: var(--clr-accent); }
+
+.char-counter {
+  font-size: .75rem;
+  font-family: monospace;
+  color: var(--clr-text-muted);
+}
+
+.panel-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.question-textarea {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  font-family: inherit;
+  font-size: .95rem;
+  color: var(--clr-text-main);
+  resize: vertical;
+  transition: border-color .2s;
+  min-height: 150px;
+}
+.question-textarea:focus {
+  outline: none;
+  border-color: var(--clr-accent);
+}
+
+/* ── Response states ───────────────────────────────────────── */
+.resp-idle, .resp-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: .75rem;
+  padding: 2.5rem 1rem;
+  color: var(--clr-text-muted);
+  font-size: .875rem;
+}
+
+.resp-idle-icon i {
+  width: 32px; height: 32px;
+  opacity: 0.5;
+}
+
+.resp-error {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem 1rem;
+  background: hsl(0,85%,60%,.05);
+  border: 1px dashed hsl(0,85%,60%,.3);
+  border-radius: var(--radius-md);
+  color: hsl(0,85%,70%);
+}
+.error-icon i { width: 32px; height: 32px; margin-bottom: .5rem; }
+
+.resp-success {
+  flex: 1;
+  background: var(--clr-bg-elevated);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  overflow-x: auto;
+}
+
+.answer-content {
+  font-size: .95rem;
+  line-height: 1.6;
+  color: var(--clr-text-main);
+  white-space: pre-wrap;
+}
+
+.answer-content strong { color: var(--clr-text-main); font-weight: 700; }
+.answer-content em { font-style: italic; opacity: 0.9; }
+
+.btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  background: transparent;
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text-muted);
+  font-size: .75rem;
+  padding: .3rem .6rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-copy:hover {
+  background: var(--clr-bg);
+  color: var(--clr-text-main);
+}
+.btn-copy i { width: 12px; height: 12px; }
+
+/* ── Utilities ─────────────────────────────────────────────── */
+.spinner {
+  width: 24px; height: 24px;
+  border: 3px solid var(--clr-border);
+  border-top-color: var(--clr-accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+.shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+  40%, 60% { transform: translate3d(3px, 0, 0); }
+}
+</style>
+
+<script>
+// ── Character counter ────────────────────────────────────────
+const textarea  = document.getElementById('notesInput');
+const charCount = document.getElementById('charCount');
+
+textarea.addEventListener('input', () => {
+  const len = textarea.value.length;
+  charCount.textContent = len.toLocaleString();
+  if (len > 9500) charCount.style.color = 'var(--clr-warning)';
+  else charCount.style.color = 'var(--clr-text-muted)';
+});
+
+// ── Action Handling ───────────────────────────────────────────
+const actionNames = {
+  'summarize': 'Summarizing',
+  'key_points': 'Extracting Key Points',
+  'explain': 'Explaining',
+  'quiz': 'Generating Quiz',
+  'flashcards': 'Creating Flashcards'
+};
+
+function setLoading(loading, actionId = null) {
+  const buttons = document.querySelectorAll('.action-grid .btn-ask');
+  buttons.forEach(btn => btn.disabled = loading);
+  textarea.disabled = loading;
+
+  if (loading) {
+    document.getElementById('respIdle').style.display    = 'none';
+    document.getElementById('respLoading').style.display = 'flex';
+    document.getElementById('respSuccess').style.display = 'none';
+    document.getElementById('respError').style.display   = 'none';
+    document.getElementById('copyBtn').style.display     = 'none';
+    
+    if (actionId && actionNames[actionId]) {
+      document.getElementById('loadingMsg').textContent = `${actionNames[actionId]}…`;
+    }
+  } else {
+    document.getElementById('respLoading').style.display = 'none';
+  }
+}
+
+function showSuccess(text) {
+  document.getElementById('respSuccess').style.display = 'block';
+  document.getElementById('copyBtn').style.display = 'inline-flex';
+  
+  // Basic markdown bold processing
+  const formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  document.getElementById('answerText').innerHTML = formattedText;
+}
+
+function showError(msg) {
+  document.getElementById('respError').style.display = 'flex';
+  document.getElementById('errorText').textContent = msg;
+}
+
+async function processNotes(action) {
+  const text = textarea.value.trim();
+
+  if (!text) {
+    textarea.focus();
+    textarea.classList.add('shake');
+    setTimeout(() => textarea.classList.remove('shake'), 500);
+    return;
+  }
+
+  setLoading(true, action);
+
+  try {
+    const res = await fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, action })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      showSuccess(data.answer);
+      saveNote(text, data.answer, action);
+    } else {
+      showError(data.error || `HTTP ${res.status}`);
+    }
+  } catch (err) {
+    showError('Network error. Please check your connection.');
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ── Copy Button ───────────────────────────────────────────────
+function copyResult() {
+  const text = document.getElementById('answerText').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="check"></i> Copied!';
+    lucide.createIcons();
+    setTimeout(() => {
+      btn.innerHTML = originalHtml;
+      lucide.createIcons();
+    }, 2000);
+}
+
+// ── Saved Notes ───────────────────────────────────────────────
+async function loadSavedNotes() {
+  const list = document.getElementById('savedNotesList');
+  try {
+    const res = await fetch('/api/notes/list');
+    const data = await res.json();
+    if (data.success) {
+      if (data.notes.length === 0) {
+        list.innerHTML = '<div style="color: var(--clr-text-muted); font-size: 0.85rem;">No saved notes yet.</div>';
+        return;
+      }
+      
+      list.innerHTML = data.notes.map(note => `
+        <div class="saved-item" onclick="loadNote(${note.id})">
+          <div class="saved-item-content">
+            <div class="saved-item-title">${note.title || 'Untitled Note'}</div>
+            <div class="saved-item-date">${new Date(note.created_at).toLocaleDateString()}</div>
+          </div>
+          <button class="btn-delete-saved" onclick="event.stopPropagation(); deleteNote(${note.id})" title="Delete">
+            <i data-lucide="trash-2"></i>
+          </button>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+  } catch (err) {
+    list.innerHTML = '<div style="color: var(--clr-red); font-size: 0.85rem;">Failed to load saved notes.</div>';
+  }
+}
+
+async function loadNote(id) {
+  try {
+    const res = await fetch(`/api/notes/${id}`);
+    const data = await res.json();
+    if (data.success) {
+      const textarea = document.getElementById('notesInput');
+      textarea.value = data.note.original_text;
+      document.getElementById('charCount').textContent = textarea.value.length;
+      showSuccess(data.note.summary_text);
+    }
+  } catch (err) {
+    showError('Failed to load note.');
+  }
+}
+
+async function deleteNote(id) {
+  if (!confirm('Are you sure you want to delete this note?')) return;
+  try {
+    const res = await fetch(`/api/notes/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      loadSavedNotes();
+    }
+  } catch (err) {
+    alert('Failed to delete note.');
+  }
+}
+
+async function saveNote(original, summary, action) {
+  try {
+    const title = (actionNames[action] || 'Note') + ' - ' + new Date().toLocaleDateString();
+    const res = await fetch('/api/notes/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: title,
+        original_text: original,
+        summary_text: summary
+      })
+    });
+    if (res.ok) {
+      loadSavedNotes();
+    }
+  } catch (err) {
+    console.error('Failed to save note:', err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadSavedNotes();
+});
+</script>
+{% endblock %}

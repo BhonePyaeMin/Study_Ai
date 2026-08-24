@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In — StudyAI{% endblock %}
+{% block description %}Sign in to your StudyAI account.{% endblock %}
+
+{% block content %}
+<div class="auth-wrap" style="display: flex; justify-content: center; align-items: center; min-height: 70vh; padding: 2rem;">
+  <div class="card" style="width: 100%; max-width: 400px; padding: 2rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem;">Welcome Back</h1>
+      <p style="color: var(--clr-text-muted);">Sign in to continue your study sessions.</p>
+    </div>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-message" style="padding: 1rem; margin-bottom: 1rem; border-radius: 8px; background: {% if category == 'error' %}#fef2f2{% else %}#f0fdf4{% endif %}; color: {% if category == 'error' %}#ef4444{% else %}#22c55e{% endif %}; font-size: 0.9rem;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('login') }}">
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label class="form-label" for="username">Username</label>
+        <input type="text" id="username" name="username" class="form-input" required autocomplete="username">
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label class="form-label" for="password">Password</label>
+        <input type="password" id="password" name="password" class="form-input" required autocomplete="current-password">
+      </div>
+      
+      <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+        Sign In
+      </button>
+    </form>
+    
+    <div style="text-align: center; margin-top: 1.5rem; font-size: 0.95rem; color: var(--clr-text-muted);">
+      Don't have an account? <a href="{{ url_for('register') }}" style="color: var(--clr-primary); font-weight: 500;">Sign up</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

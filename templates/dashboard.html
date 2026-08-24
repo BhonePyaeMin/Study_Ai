@@ -1,0 +1,526 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — AI Study Assistant{% endblock %}
+{% block description %}Your personal study dashboard. Track progress, manage tasks, and get AI-powered help.{% endblock
+%}
+
+{% block content %}
+<div class="db-wrap">
+
+  <!-- ── Welcome ─────────────────────────────────────────────── -->
+  <div class="db-welcome">
+    <div class="db-welcome-left">
+      <h2 id="greeting">Good evening, {{ session.get('username', 'Student') }}! 👋</h2>
+      <p>Here's your study overview for today. Keep up the great work!</p>
+    </div>
+    <div class="db-welcome-right">
+      <div class="db-date" id="currentDate">{{ current_date }}</div>
+      <div class="db-streak-pill">
+        <i data-lucide="flame"></i>
+        {{ streak }}-Day Study Streak
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Stat cards ──────────────────────────────────────────── -->
+  <div class="stats-row">
+
+    <!-- Tasks Completed -->
+    <div class="stat-card clr-purple">
+      <div class="stat-card-top">
+        <div class="stat-icon s-purple"><i data-lucide="check-square"></i></div>
+      </div>
+      <div class="stat-value">{{ tasks_completed }}</div>
+      <div class="stat-label">Tasks completed</div>
+    </div>
+
+    <!-- Completed Quizzes -->
+    <div class="stat-card clr-blue">
+      <div class="stat-card-top">
+        <div class="stat-icon s-blue"><i data-lucide="check-circle"></i></div>
+      </div>
+      <div class="stat-value">{{ total_quizzes }}</div>
+      <div class="stat-label">Quizzes completed</div>
+    </div>
+
+    <!-- Average Quiz Score -->
+    <div class="stat-card clr-green">
+      <div class="stat-card-top">
+        <div class="stat-icon s-green"><i data-lucide="bar-chart-2"></i></div>
+      </div>
+      <div class="stat-value">{{ avg_score }}<sup> % </sup></div>
+      <div class="stat-label">Average quiz score</div>
+    </div>
+
+    <!-- Study Progress -->
+    <div class="stat-card clr-amber">
+      <div class="stat-card-top">
+        <div class="stat-icon s-amber"><i data-lucide="target"></i></div>
+        <span class="stat-trend trend-same">
+          <i data-lucide="minus"></i> On track
+        </span>
+      </div>
+      <div class="stat-value">{{ overall_progress }}<sup> % </sup></div>
+      <div class="stat-label">Overall semester progress</div>
+    </div>
+
+  </div><!-- /stats-row -->
+
+  <!-- ── Two-column layout ────────────────────────────────────── -->
+  <div class="db-cols">
+
+    <!-- Left / main column -->
+    <div class="db-main">
+
+      <!-- Weekly Activity -->
+      <div class="db-card">
+        <div class="db-card-head">
+          <span class="db-card-title">
+            <i data-lucide="activity"></i>
+            Weekly Study Activity
+          </span>
+          <span class="db-card-action">
+            This week <i data-lucide="chevron-right"></i>
+          </span>
+        </div>
+        <div class="db-card-body">
+          <div class="week-chart">
+            {% for day in weekly_activity %}
+            <div class="week-bar-col">
+              <div class="week-bar {% if loop.last %}is-today{% endif %}" style="height:{{ day.percentage }}%"></div>
+              <span class="week-label {% if loop.last %}is-today{% endif %}">{{ day.label }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="chart-legend">
+          <div class="chart-legend-item">
+            <div class="chart-legend-dot" style="background: hsl(250,84%,60%,.35)"></div>
+            Past days
+          </div>
+          <div class="chart-legend-item">
+            <div class="chart-legend-dot" style="background: var(--clr-primary)"></div>
+            Today
+          </div>
+        </div>
+      </div>
+
+      <!-- Study Progress -->
+      <div class="db-card">
+        <div class="db-card-head">
+          <span class="db-card-title">
+            <i data-lucide="book-open"></i>
+            Study Progress by Subject
+          </span>
+          <a href="#" class="db-card-action">
+            View all <i data-lucide="chevron-right"></i>
+          </a>
+        </div>
+        <div class="db-card-body">
+          <div class="progress-list">
+
+            <div>
+              <div class="prog-row-head">
+                <span class="prog-subject">
+                  <span class="dot dot-purple"></span>
+                  Mathematics
+                </span>
+                <span class="prog-pct">72%</span>
+              </div>
+              <div class="prog-track">
+                <div class="prog-fill fill-purple" style="--w: 72%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="prog-row-head">
+                <span class="prog-subject">
+                  <span class="dot dot-blue"></span>
+                  Physics
+                </span>
+                <span class="prog-pct">58%</span>
+              </div>
+              <div class="prog-track">
+                <div class="prog-fill fill-blue" style="--w: 58%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="prog-row-head">
+                <span class="prog-subject">
+                  <span class="dot dot-amber"></span>
+                  World History
+                </span>
+                <span class="prog-pct">85%</span>
+              </div>
+              <div class="prog-track">
+                <div class="prog-fill fill-amber" style="--w: 85%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="prog-row-head">
+                <span class="prog-subject">
+                  <span class="dot dot-green"></span>
+                  Python Programming
+                </span>
+                <span class="prog-pct">91%</span>
+              </div>
+              <div class="prog-track">
+                <div class="prog-fill fill-green" style="--w: 91%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="prog-row-head">
+                <span class="prog-subject">
+                  <span class="dot dot-pink"></span>
+                  Chemistry
+                </span>
+                <span class="prog-pct">43%</span>
+              </div>
+              <div class="prog-track">
+                <div class="prog-fill fill-pink" style="--w: 43%"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Continue Studying -->
+      <div class="db-card">
+        <div class="db-card-head">
+          <span class="db-card-title">
+            <i data-lucide="play-circle"></i>
+            Continue Studying
+          </span>
+          <a href="#" class="db-card-action">
+            All sessions <i data-lucide="chevron-right"></i>
+          </a>
+        </div>
+        <div class="db-card-body">
+          <div class="continue-grid">
+
+            <!-- Card 1 -->
+            <div class="cont-card">
+              <div class="cont-card-top">
+                <div class="cont-subject-icon s-purple">
+                  <i data-lucide="calculator"></i>
+                </div>
+                <span class="cont-chapter">Ch. 7</span>
+              </div>
+              <div>
+                <div class="cont-title">Calculus II</div>
+                <div class="cont-sub">Integral Applications</div>
+              </div>
+              <div class="cont-prog-row">
+                <div class="prog-track">
+                  <div class="prog-fill fill-purple" style="--w: 64%"></div>
+                </div>
+                <span>64%</span>
+              </div>
+              <a href="#" class="btn-cont">
+                <i data-lucide="play"></i> Continue
+              </a>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="cont-card">
+              <div class="cont-card-top">
+                <div class="cont-subject-icon s-blue">
+                  <i data-lucide="atom"></i>
+                </div>
+                <span class="cont-chapter">Ch. 4</span>
+              </div>
+              <div>
+                <div class="cont-title">Physics</div>
+                <div class="cont-sub">Electromagnetism</div>
+              </div>
+              <div class="cont-prog-row">
+                <div class="prog-track">
+                  <div class="prog-fill fill-blue" style="--w: 38%"></div>
+                </div>
+                <span>38%</span>
+              </div>
+              <a href="#" class="btn-cont">
+                <i data-lucide="play"></i> Continue
+              </a>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="cont-card">
+              <div class="cont-card-top">
+                <div class="cont-subject-icon s-green">
+                  <i data-lucide="code-2"></i>
+                </div>
+                <span class="cont-chapter">Ch. 11</span>
+              </div>
+              <div>
+                <div class="cont-title">Python</div>
+                <div class="cont-sub">Data Structures</div>
+              </div>
+              <div class="cont-prog-row">
+                <div class="prog-track">
+                  <div class="prog-fill fill-green" style="--w: 88%"></div>
+                </div>
+                <span>88%</span>
+              </div>
+              <a href="#" class="btn-cont">
+                <i data-lucide="play"></i> Continue
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="db-card">
+        <div class="db-card-head">
+          <span class="db-card-title">
+            <i data-lucide="history"></i>
+            Recent Activity
+          </span>
+        </div>
+        <div class="db-card-body">
+          {% if recent_activity %}
+          {% for item in recent_activity %}
+          <div class="act-item">
+            <div class="act-dot d-green">
+              <i data-lucide="check-circle"></i>
+            </div>
+            <div class="act-body">
+              <div class="act-text">
+                Completed quiz: <strong>{{ item.topic }}</strong> — scored <strong>{{ item.percentage }}%</strong>
+              </div>
+              <div class="act-when">{{ item.created_at.split(' ')[0] if item.created_at else '' }}</div>
+            </div>
+          </div>
+          {% endfor %}
+          {% else %}
+          <div class="act-item" style="justify-content:center; color:var(--clr-text-muted);">
+            No recent activity yet. Take a quiz to get started!
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div><!-- /db-main -->
+
+    <!-- Right / sidebar column -->
+    <div class="db-side">
+
+      <!-- Quick Actions -->
+      <div class="db-card">
+        <div class="db-card-head">
+          <span class="db-card-title">
+            <i data-lucide="zap"></i>
+            Quick Actions
+          </span>
+        </div>
+        <div class="db-card-body">
+          <div class="qa-grid">
+            <a href="{{ url_for('tutor') }}" class="qa-btn qa-purple">
+              <div class="qa-icon"><i data-lucide="message-circle"></i></div>
+              Ask AI Tutor
+            </a>
+            <a href="{{ url_for('quiz') }}" class="qa-btn qa-blue">
+              <div class="qa-icon"><i data-lucide="pencil-line"></i></div>
+              Create Quiz
+            </a>
+            <a href="{{ url_for('notes') }}" class="qa-btn qa-green">
+              <div class="qa-icon"><i data-lucide="file-text"></i></div>
+              Summarize Notes
+            </a>
+            <a href="{{ url_for('flashcards') }}" class="qa-btn qa-amber">
+              <div class="qa-icon"><i data-lucide="layers"></i></div>
+              Create Flashcards
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today's Tasks -->
+      <div class="db-card">
+        <div class="db-card-head">
+          <span class="db-card-title">
+            <i data-lucide="list-checks"></i>
+            Today's Study Tasks
+          </span>
+          <span class="db-card-action" id="taskCount">5 tasks</span>
+        </div>
+        <div class="db-card-body">
+          <div class="task-list">
+
+            <div class="task-item done" onclick="toggleTask(this)">
+              <div class="task-check"><i data-lucide="check"></i></div>
+              <div class="task-body">
+                <div class="task-title">Review Calculus Chapter 7</div>
+                <div class="task-meta">
+                  <span class="tag tag-purple">Mathematics</span>
+                  <span class="task-time"><i data-lucide="clock"></i> 1h</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="task-item done" onclick="toggleTask(this)">
+              <div class="task-check"><i data-lucide="check"></i></div>
+              <div class="task-body">
+                <div class="task-title">Complete Physics Problem Set</div>
+                <div class="task-meta">
+                  <span class="tag tag-blue">Physics</span>
+                  <span class="task-time"><i data-lucide="clock"></i> 45m</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="task-item" onclick="toggleTask(this)">
+              <div class="task-check"><i data-lucide="check"></i></div>
+              <div class="task-body">
+                <div class="task-title">Study WW2 Eastern Front Notes</div>
+                <div class="task-meta">
+                  <span class="tag tag-amber">History</span>
+                  <span class="task-time"><i data-lucide="clock"></i> 30m</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="task-item" onclick="toggleTask(this)">
+              <div class="task-check"><i data-lucide="check"></i></div>
+              <div class="task-body">
+                <div class="task-title">Python: Linked Lists Practice</div>
+                <div class="task-meta">
+                  <span class="tag tag-green">Python</span>
+                  <span class="task-time"><i data-lucide="clock"></i> 1h 30m</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="task-item" onclick="toggleTask(this)">
+              <div class="task-check"><i data-lucide="check"></i></div>
+              <div class="task-body">
+                <div class="task-title">Chemistry — Organic Reactions Quiz</div>
+                <div class="task-meta">
+                  <span class="tag tag-pink">Chemistry</span>
+                  <span class="task-time"><i data-lucide="clock"></i> 20m</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Upcoming Deadlines -->
+      <div class="db-card">
+        <div class="db-card-head">
+          <span class="db-card-title">
+            <i data-lucide="calendar-clock"></i>
+            Upcoming Deadlines
+          </span>
+        </div>
+        <div class="db-card-body">
+          <div class="act-list">
+
+            <div class="act-item">
+              <div class="act-dot d-amber">
+                <i data-lucide="alert-triangle"></i>
+              </div>
+              <div class="act-body">
+                <div class="act-text"><strong>Calculus Mid-term Exam</strong></div>
+                <div class="act-when">In 3 days — Mon 20 Aug</div>
+              </div>
+            </div>
+
+            <div class="act-item">
+              <div class="act-dot d-blue">
+                <i data-lucide="file-check"></i>
+              </div>
+              <div class="act-body">
+                <div class="act-text"><strong>Physics Lab Report</strong></div>
+                <div class="act-when">In 5 days — Wed 22 Aug</div>
+              </div>
+            </div>
+
+            <div class="act-item">
+              <div class="act-dot d-green">
+                <i data-lucide="code-2"></i>
+              </div>
+              <div class="act-body">
+                <div class="act-text"><strong>Python Assignment #3</strong></div>
+                <div class="act-when">In 8 days — Sat 25 Aug</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /db-side -->
+  </div><!-- /db-cols -->
+</div><!-- /db-wrap -->
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // ── Quiz Chart ────────────────────────────────────────────────
+  const rawQuizzes = {{ quizzes | tojson }};
+  if (rawQuizzes.length > 0) {
+    const ctx = document.getElementById('quizChart').getContext('2d');
+    const labels = rawQuizzes.map(q => q.topic);
+    const dataPoints = rawQuizzes.map(q => q.percentage);
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Quiz Score (%)',
+          data: dataPoints,
+          borderColor: '#8b5cf6', // purple accent
+          backgroundColor: 'rgba(139, 92, 246, 0.2)',
+          tension: 0.3,
+          fill: true,
+          pointBackgroundColor: '#8b5cf6'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, max: 100 }
+        }
+      }
+    });
+  }
+
+  // ── Dynamic greeting based on time of day ──────────────────
+  (function () {
+    const h = new Date().getHours();
+    const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+    document.getElementById('greeting').innerHTML = greeting + ', {{ session.get("username", "Student") }}! <i data-lucide="hand"></i>';
+
+    // Dynamic date
+    const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('currentDate').textContent =
+      new Date().toLocaleDateString('en-GB', opts);
+  })();
+
+  // ── Task toggle ────────────────────────────────────────────
+  function toggleTask(el) {
+    el.classList.toggle('done');
+    updateTaskCount();
+    lucide.createIcons(); // re-render icons in toggled items
+  }
+
+  function updateTaskCount() {
+    const total = document.querySelectorAll('.task-item').length;
+    const done = document.querySelectorAll('.task-item.done').length;
+    document.getElementById('taskCount').textContent = done + '/' + total + ' done';
+  }
+
+  updateTaskCount();
+</script>
+{% endblock %}

@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI API Test — Study Assistant</title>
+  <meta name="description" content="Test the Gemini API integration for the AI Study Assistant." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a class="nav-brand" href="/">
+        <span class="brand-icon"><i data-lucide="sparkles"></i></span>
+        StudyAI
+      </a>
+      <ul class="nav-links">
+        <li><a href="/" class="nav-link ">Home</a></li>
+        <li><a href="/dashboard" class="nav-link ">Dashboard</a></li>
+        <li><a href="/about" class="nav-link ">About</a></li>
+      </ul>
+      <div class="nav-actions">
+        <a href="#" class="btn btn-ghost">Sign In</a>
+        <a href="#" class="btn btn-primary">Get Started</a>
+      </div>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Page content -->
+  <main id="main-content">
+    
+<div class="test-wrap">
+
+  <!-- ── Page header ───────────────────────────────────────── -->
+  <div class="test-header">
+    <div class="test-header-left">
+      <div class="test-badge badge-green">
+        <span class="badge-dot"></span>
+        
+          Gemini API Connected — gemini-2.5-flash
+        
+      </div>
+      <h1 class="test-title">API Integration Test</h1>
+      <p class="test-subtitle">
+        Send a question directly to the Gemini backend endpoint.
+        The API key is kept server-side and is never sent to your browser.
+      </p>
+    </div>
+    <div class="test-endpoint-badge">
+      <span class="ep-method">POST</span>
+      <span class="ep-path">/api/ask</span>
+    </div>
+  </div>
+
+  
+
+  <!-- ── Main test panel ──────────────────────────────────── -->
+  <div class="test-grid">
+
+    <!-- Left: Input & examples -->
+    <div class="test-panel test-panel-left">
+
+      <div class="panel-head">
+        <span class="panel-title"><i data-lucide="send"></i> Your Question</span>
+        <span class="char-counter"><span id="charCount">0</span> / 2 000</span>
+      </div>
+
+      <div class="panel-body">
+        <textarea
+          id="questionInput"
+          class="question-textarea"
+          placeholder="Ask Gemini anything — e.g. Explain Newton's second law of motion in simple terms."
+          maxlength="2000"
+          rows="5"
+          
+        ></textarea>
+
+        <button
+          id="askBtn"
+          class="btn-ask btn-primary"
+          onclick="askGemini()"
+          
+        >
+          <span class="btn-ask-default">
+            <i data-lucide="sparkles"></i> Ask Gemini
+          </span>
+          <span class="btn-ask-loading" style="display:none">
+            <span class="spinner"></span> Thinking…
+          </span>
+        </button>
+      </div>
+
+      <!-- Example questions -->
+      <div class="examples-section">
+        <div class="examples-label">Try an example</div>
+        <div class="examples-grid">
+          <button class="example-chip" onclick="useExample(this)">
+            Explain derivatives in calculus with a real-world example.
+          </button>
+          <button class="example-chip" onclick="useExample(this)">
+            What is the difference between mitosis and meiosis?
+          </button>
+          <button class="example-chip" onclick="useExample(this)">
+            Summarise the causes of World War I in 3 bullet points.
+          </button>
+          <button class="example-chip" onclick="useExample(this)">
+            Write a Python function to find the Fibonacci sequence.
+          </button>
+        </div>
+      </div>
+
+      <!-- How it works -->
+      <div class="how-it-works">
+        <div class="hiw-title">
+          <i data-lucide="shield-check"></i> How the API call works
+        </div>
+        <ol class="hiw-list">
+          <li>Your question is sent via <code>fetch()</code> to <code>POST /api/ask</code> on this server.</li>
+          <li>Flask validates the input (empty, length, JSON format).</li>
+          <li>The server calls the Gemini API using the key stored only in <code>.env</code>.</li>
+          <li>Gemini's answer is returned to your browser as JSON — the key never leaves the server.</li>
+        </ol>
+      </div>
+
+    </div>
+
+    <!-- Right: Response -->
+    <div class="test-panel test-panel-right">
+
+      <div class="panel-head">
+        <span class="panel-title"><i data-lucide="bot"></i> Gemini Response</span>
+        <div class="response-meta" id="responseMeta" style="display:none">
+          <span class="meta-tag" id="metaModel"></span>
+          <span class="meta-tag" id="metaTime"></span>
+        </div>
+      </div>
+
+      <div class="panel-body" style="flex:1; display:flex; flex-direction:column;">
+
+        <!-- Idle state -->
+        <div class="resp-idle" id="respIdle">
+          <div class="resp-idle-icon"><i data-lucide="message-square-dashed"></i></div>
+          <p>The AI response will appear here.</p>
+        </div>
+
+        <!-- Loading state -->
+        <div class="resp-loading" id="respLoading" style="display:none">
+          <div class="loading-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <p>Gemini is thinking…</p>
+        </div>
+
+        <!-- Success state -->
+        <div class="resp-success" id="respSuccess" style="display:none">
+          <div class="answer-text" id="answerText"></div>
+        </div>
+
+        <!-- Error state -->
+        <div class="resp-error" id="respError" style="display:none">
+          <div class="error-icon"><i data-lucide="alert-circle"></i></div>
+          <strong>Error</strong>
+          <p id="errorText"></p>
+        </div>
+
+      </div>
+
+      <!-- Raw JSON section -->
+      <div class="json-section" id="jsonSection" style="display:none">
+        <div class="json-head">
+          <span><i data-lucide="code-2"></i> Raw JSON Response</span>
+          <button class="btn-copy" onclick="copyJson()" id="copyBtn">
+            <i data-lucide="copy"></i> Copy
+          </button>
+        </div>
+        <pre class="json-pre" id="jsonPre"></pre>
+      </div>
+
+    </div>
+
+  </div><!-- /test-grid -->
+
+  <!-- ── Endpoint reference card ───────────────────────────── -->
+  <div class="endpoint-ref">
+    <div class="endpoint-ref-head">
+      <i data-lucide="book-open"></i>
+      Endpoint Reference — <code>POST /api/ask</code>
+    </div>
+    <div class="endpoint-ref-body">
+      <div class="ref-col">
+        <div class="ref-label">Request</div>
+        <pre class="ref-pre">{
+  "question": "Your question here (max 2 000 chars)"
+}</pre>
+      </div>
+      <div class="ref-col">
+        <div class="ref-label">Success Response</div>
+        <pre class="ref-pre">{
+  "success": true,
+  "answer":  "AI answer text...",
+  "model":   "gemini-1.5-flash"
+}</pre>
+      </div>
+      <div class="ref-col">
+        <div class="ref-label">Error Response</div>
+        <pre class="ref-pre">{
+  "success": false,
+  "error":   "Human-readable message"
+}
+<span class="ref-comment">HTTP 400 · 401 · 422 · 429 · 503</span></pre>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /test-wrap -->
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <span class="brand-icon"><i data-lucide="sparkles"></i></span>
+        <span>StudyAI</span>
+      </div>
+      <p class="footer-text">Built for university students, powered by Gemini AI.</p>
+      <p class="footer-copy">&copy; 2026 AI-Based Study Assistant. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="/static/js/main.js"></script>
+  
+<style>
+/* ── Test page layout ─────────────────────────────────────── */
+.test-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 5.5rem 2rem 3rem;
+}
+
+.test-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.test-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .3rem .9rem;
+  border-radius: var(--radius-full);
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  margin-bottom: .75rem;
+}
+.badge-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.badge-green { background: hsl(152,69%,48%,.12); border: 1px solid hsl(152,69%,48%,.35); color: hsl(152,69%,62%); }
+.badge-green .badge-dot { background: hsl(152,69%,55%); animation: pulse 2s infinite; }
+.badge-red  { background: hsl(0,85%,60%,.12); border: 1px solid hsl(0,85%,60%,.35); color: hsl(0,85%,70%); }
+.badge-red  .badge-dot  { background: hsl(0,85%,60%); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .4; }
+}
+
+.test-title {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -.04em;
+  margin-bottom: .4rem;
+}
+.test-subtitle {
+  color: var(--clr-text-muted);
+  font-size: .95rem;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+.test-endpoint-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  background: var(--clr-bg-card);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  padding: .5rem .9rem;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: .5rem;
+}
+.ep-method {
+  font-size: .72rem;
+  font-weight: 800;
+  background: hsl(152,69%,48%,.15);
+  color: hsl(152,69%,60%);
+  padding: .15rem .4rem;
+  border-radius: 4px;
+  letter-spacing: .05em;
+}
+.ep-path {
+  font-family: monospace;
+  font-size: .85rem;
+  color: var(--clr-text-muted);
+}
+
+/* ── Setup warning ─────────────────────────────────────────── */
+.setup-warning {
+  display: flex;
+  gap: 1rem;
+  background: hsl(38,100%,58%,.08);
+  border: 1px solid hsl(38,100%,58%,.3);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+.setup-warning-icon { color: var(--clr-warning); flex-shrink: 0; }
+.setup-warning-icon i { width: 22px; height: 22px; }
+.setup-warning p { color: var(--clr-text-muted); font-size: .875rem; margin-top: .25rem; }
+.setup-warning code { font-family: monospace; background: var(--clr-bg-elevated); padding: .1rem .35rem; border-radius: 4px; font-size: .85em; }
+.warning-link { display: inline-flex; align-items: center; gap: .3rem; color: var(--clr-warning); font-size: .85rem; font-weight: 600; margin-top: .5rem; }
+.warning-link i { width: 13px; height: 13px; }
+
+/* ── Grid ──────────────────────────────────────────────────── */
+.test-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  align-items: start;
+}
+
+/* ── Panel ─────────────────────────────────────────────────── */
+.test-panel {
+  background: var(--gradient-card);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-head {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--clr-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-title {
+  font-size: .875rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+.panel-title i { width: 15px; height: 15px; color: var(--clr-primary); }
+
+.char-counter {
+  font-size: .75rem;
+  color: var(--clr-text-muted);
+  font-family: monospace;
+}
+
+.panel-body { padding: 1.25rem; }
+
+/* ── Textarea ──────────────────────────────────────────────── */
+.question-textarea {
+  width: 100%;
+  background: var(--clr-bg-elevated);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  color: var(--clr-text);
+  font-family: var(--font-body);
+  font-size: .9rem;
+  line-height: 1.6;
+  padding: .875rem 1rem;
+  resize: vertical;
+  min-height: 120px;
+  transition: border-color var(--duration);
+  outline: none;
+  margin-bottom: .875rem;
+}
+.question-textarea:focus { border-color: var(--clr-primary); }
+.question-textarea:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Ask button ────────────────────────────────────────────── */
+.btn-ask {
+  width: 100%;
+  padding: .75rem;
+  border-radius: var(--radius-md);
+  border: none;
+  font-family: var(--font-body);
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  background: var(--clr-primary);
+  color: #fff;
+  transition: background var(--duration), transform var(--duration) var(--ease-out),
+              box-shadow var(--duration) var(--ease-out);
+}
+.btn-ask:hover:not(:disabled) {
+  background: var(--clr-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px var(--clr-primary-glow);
+}
+.btn-ask:disabled { opacity: .5; cursor: not-allowed; }
+.btn-ask i { width: 16px; height: 16px; }
+
+/* ── Examples ──────────────────────────────────────────────── */
+.examples-section {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--clr-border);
+}
+.examples-label {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--clr-text-muted);
+  margin-bottom: .6rem;
+}
+.examples-grid {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+.example-chip {
+  background: var(--clr-bg-elevated);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  color: var(--clr-text-muted);
+  font-family: var(--font-body);
+  font-size: .78rem;
+  padding: .5rem .75rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--duration), color var(--duration), border-color var(--duration);
+}
+.example-chip:hover { background: var(--clr-bg-elevated); color: var(--clr-text); border-color: hsl(250,60%,35%); }
+
+/* ── How it works ──────────────────────────────────────────── */
+.how-it-works {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--clr-border);
+}
+.hiw-title {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--clr-text-muted);
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  margin-bottom: .6rem;
+}
+.hiw-title i { width: 13px; height: 13px; color: var(--clr-success); }
+.hiw-list {
+  padding-left: 1.25rem;
+  color: var(--clr-text-muted);
+  font-size: .78rem;
+  line-height: 1.75;
+}
+.hiw-list code { font-family: monospace; background: var(--clr-bg-elevated); padding: .1rem .3rem; border-radius: 4px; font-size: .85em; color: var(--clr-accent); }
+
+/* ── Response states ───────────────────────────────────────── */
+.response-meta { display: flex; gap: .4rem; flex-wrap: wrap; }
+.meta-tag {
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .15rem .55rem;
+  border-radius: var(--radius-full);
+  background: var(--clr-bg-elevated);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text-muted);
+}
+
+.resp-idle, .resp-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: .75rem;
+  padding: 2.5rem 1rem;
+  color: var(--clr-text-muted);
+  font-size: .875rem;
+}
+.resp-idle-icon i, .resp-loading i { width: 36px; height: 36px; opacity: .3; }
+
+/* Loading dots */
+.loading-dots { display: flex; gap: .4rem; }
+.loading-dots span {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--clr-primary);
+  animation: dotBounce 1.2s infinite ease-in-out both;
+}
+.loading-dots span:nth-child(1) { animation-delay: 0s; }
+.loading-dots span:nth-child(2) { animation-delay: .2s; }
+.loading-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: scale(0.7); opacity: .5; }
+  40%           { transform: scale(1);   opacity: 1; }
+}
+
+/* Spinner for button */
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid hsl(0,0%,100%,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin .7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Success answer */
+.resp-success { flex: 1; padding: .25rem 0; }
+.answer-text {
+  font-size: .9rem;
+  line-height: 1.75;
+  color: var(--clr-text);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Error */
+.resp-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: .5rem;
+  padding: 2rem 1rem;
+  color: hsl(0,85%,62%);
+}
+.error-icon i { width: 32px; height: 32px; }
+.resp-error p  { font-size: .875rem; color: var(--clr-text-muted); }
+.resp-error strong { font-size: 1rem; }
+
+/* JSON section */
+.json-section {
+  border-top: 1px solid var(--clr-border);
+}
+.json-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .75rem 1.25rem;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--clr-text-muted);
+}
+.json-head span { display: flex; align-items: center; gap: .4rem; }
+.json-head i { width: 13px; height: 13px; }
+.btn-copy {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .25rem .6rem;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--clr-text-muted);
+  font-family: var(--font-body);
+  font-size: .72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--duration), color var(--duration);
+}
+.btn-copy:hover { background: var(--clr-bg-elevated); color: var(--clr-text); }
+.btn-copy i { width: 11px; height: 11px; }
+.json-pre {
+  background: var(--clr-bg);
+  padding: 1rem 1.25rem;
+  font-size: .78rem;
+  line-height: 1.65;
+  overflow-x: auto;
+  color: hsl(152,69%,62%);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  margin: 0;
+}
+
+/* ── Endpoint reference card ───────────────────────────────── */
+.endpoint-ref {
+  background: var(--gradient-card);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.endpoint-ref-head {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--clr-border);
+  font-size: .875rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.endpoint-ref-head i { width: 15px; height: 15px; color: var(--clr-primary); }
+.endpoint-ref-head code { font-family: monospace; color: var(--clr-accent); background: var(--clr-bg-elevated); padding: .1rem .4rem; border-radius: 4px; }
+.endpoint-ref-body {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+}
+.ref-col {
+  padding: 1.25rem 1.5rem;
+  border-right: 1px solid var(--clr-border);
+}
+.ref-col:last-child { border-right: none; }
+.ref-label {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--clr-text-muted);
+  margin-bottom: .6rem;
+}
+.ref-pre {
+  background: var(--clr-bg);
+  border-radius: var(--radius-md);
+  padding: .875rem 1rem;
+  font-size: .78rem;
+  line-height: 1.6;
+  color: hsl(152,69%,62%);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  margin: 0;
+  overflow-x: auto;
+}
+.ref-comment { color: var(--clr-text-muted); }
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .test-grid { grid-template-columns: 1fr; }
+  .endpoint-ref-body { grid-template-columns: 1fr; }
+  .ref-col { border-right: none; border-bottom: 1px solid var(--clr-border); }
+  .ref-col:last-child { border-bottom: none; }
+}
+@media (max-width: 600px) {
+  .test-wrap { padding: 4.5rem 1rem 2rem; }
+}
+</style>
+
+<script>
+// ── Character counter ────────────────────────────────────────
+const textarea = document.getElementById('questionInput');
+const charCount = document.getElementById('charCount');
+
+textarea?.addEventListener('input', () => {
+  const n = textarea.value.length;
+  charCount.textContent = n;
+  charCount.style.color = n > 1800
+    ? 'hsl(0,85%,62%)'
+    : n > 1500
+    ? 'hsl(38,100%,58%)'
+    : '';
+});
+
+// ── Fill textarea from example chip ─────────────────────────
+function useExample(btn) {
+  if (!textarea) return;
+  textarea.value = btn.textContent.trim();
+  charCount.textContent = textarea.value.length;
+  textarea.focus();
+}
+
+// ── UI state helpers ─────────────────────────────────────────
+function setLoading(loading) {
+  const btn         = document.getElementById('askBtn');
+  const defaultSpan = btn.querySelector('.btn-ask-default');
+  const loadingSpan = btn.querySelector('.btn-ask-loading');
+
+  btn.disabled = loading;
+  defaultSpan.style.display = loading ? 'none' : 'flex';
+  loadingSpan.style.display = loading ? 'flex' : 'none';
+
+  document.getElementById('respIdle').style.display    = 'none';
+  document.getElementById('respLoading').style.display = loading ? 'flex' : 'none';
+  document.getElementById('respSuccess').style.display = 'none';
+  document.getElementById('respError').style.display   = 'none';
+  document.getElementById('jsonSection').style.display = 'none';
+  document.getElementById('responseMeta').style.display = 'none';
+}
+
+function showSuccess(data, elapsed) {
+  // Format the answer text (convert markdown-style **bold** and newlines)
+  let html = data.answer
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code style="background:var(--clr-bg-elevated);padding:.1em .35em;border-radius:4px;font-family:monospace;font-size:.9em">$1</code>');
+
+  document.getElementById('answerText').innerHTML = html;
+  document.getElementById('respSuccess').style.display = 'block';
+
+  document.getElementById('metaModel').textContent = data.model;
+  document.getElementById('metaTime').textContent  = elapsed + ' ms';
+  document.getElementById('responseMeta').style.display = 'flex';
+
+  // Raw JSON
+  document.getElementById('jsonPre').textContent = JSON.stringify(data, null, 2);
+  document.getElementById('jsonSection').style.display = 'block';
+
+  lucide.createIcons();
+}
+
+function showError(data, statusCode) {
+  document.getElementById('errorText').textContent = data.error || 'Unknown error.';
+  document.getElementById('respError').style.display = 'flex';
+
+  // Still show raw JSON for debugging
+  document.getElementById('jsonPre').textContent = JSON.stringify(
+    { ...data, http_status: statusCode }, null, 2
+  );
+  document.getElementById('jsonSection').style.display = 'block';
+
+  lucide.createIcons();
+}
+
+// ── Main ask function ────────────────────────────────────────
+async function askGemini() {
+  const question = textarea?.value.trim();
+
+  if (!question) {
+    textarea?.focus();
+    textarea?.classList.add('shake');
+    setTimeout(() => textarea?.classList.remove('shake'), 500);
+    return;
+  }
+
+  setLoading(true);
+  const t0 = Date.now();
+
+  try {
+    const res = await fetch('/api/ask', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ question }),
+    });
+
+    const data = await res.json();
+    const elapsed = Date.now() - t0;
+
+    if (data.success) {
+      showSuccess(data, elapsed);
+    } else {
+      showError(data, res.status);
+    }
+  } catch (err) {
+    showError(
+      { error: 'Network error — could not reach the server. Is Flask running?' },
+      0
+    );
+  } finally {
+    setLoading(false);
+    document.getElementById('askBtn').disabled = false;
+  }
+}
+
+// ── Copy JSON ────────────────────────────────────────────────
+async function copyJson() {
+  const text = document.getElementById('jsonPre').textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('copyBtn');
+    btn.innerHTML = '<i data-lucide="check"></i> Copied!';
+    lucide.createIcons();
+    setTimeout(() => {
+      btn.innerHTML = '<i data-lucide="copy"></i> Copy';
+      lucide.createIcons();
+    }, 2000);
+  } catch (_) {}
+}
+
+// ── Enter key submits ────────────────────────────────────────
+textarea?.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) askGemini();
+});
+
+// Shake animation
+const style = document.createElement('style');
+style.textContent = '@keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-4px)} 40%,80%{transform:translateX(4px)} } .shake { animation: shake .4s ease; border-color: hsl(0,85%,60%) !important; }';
+document.head.appendChild(style);
+</script>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

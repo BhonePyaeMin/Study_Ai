@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Study Planner — AI Study Assistant{% endblock %}
+{% block description %}Organize your study schedule and track your tasks.{% endblock %}
+
+{% block content %}
+<div class="planner-wrap">
+  <div class="test-header">
+    <div class="test-header-left">
+      <h1 class="test-title">Study Planner</h1>
+      <p class="test-subtitle">Plan your study sessions, track deadlines, and stay on top of your coursework.</p>
+    </div>
+  </div>
+
+  <div class="planner-grid">
+    
+    <!-- LEFT: Add Task Form -->
+    <div class="planner-sidebar">
+      <div class="test-panel">
+        <div class="panel-head">
+          <span class="panel-title"><i data-lucide="plus-circle"></i> Add Task</span>
+        </div>
+        <div class="panel-body">
+          <form id="taskForm" onsubmit="addTask(event)">
+            <div class="form-group">
+              <label class="form-label" for="taskSubject">Subject</label>
+              <input type="text" id="taskSubject" class="form-input" placeholder="e.g. Calculus 101" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="taskName">Task Description</label>
+              <input type="text" id="taskName" class="form-input" placeholder="e.g. Complete chapter 4 exercises" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="taskDate">Due Date</label>
+              <input type="date" id="taskDate" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="taskPriority">Priority</label>
+              <select id="taskPriority" class="form-input">
+                <option value="High">High</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            <div class="form-actions" style="margin-top: 1.5rem;">
+              <button type="submit" class="btn btn-primary btn-ask" style="width:100%;">
+                <i data-lucide="plus"></i> Add Task
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Progress Panel -->
+      <div class="test-panel" style="margin-top: 1.5rem;">
+        <div class="panel-head">
+          <span class="panel-title"><i data-lucide="bar-chart-2"></i> Progress</span>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+          <h2 id="progressPct" style="font-size: 2.5rem; color: var(--clr-accent);">0%</h2>
+          <p style="color: var(--clr-text-muted); font-size: 0.9rem;">Tasks Completed</p>
+          <div class="progress-bar-bg" style="margin-top: 1rem; height: 8px;">
+            <div class="progress-bar-fill" id="progressBar" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Task Lists -->
+    <div class="planner-main">
+      
+      <!-- Today -->
+      <div class="task-section">
+        <h3 class="section-title"><i data-lucide="calendar"></i> Today's Tasks</h3>
+        <div class="task-list" id="listToday">
+          <div class="empty-state">Loading tasks...</div>
+        </div>
+      </div>
+
+      <!-- Upcoming -->
+      <div class="task-section">
+        <h3 class="section-title"><i data-lucide="calendar-days"></i> Upcoming</h3>
+        <div class="task-list" id="listUpcoming">
+          <div class="empty-state">Loading tasks...</div>
+        </div>
+      </div>
+
+      <!-- Completed -->
+      <div class="task-section">
+        <h3 class="section-title" style="color: var(--clr-success);"><i data-lucide="check-circle"></i> Completed</h3>
+        <div class="task-list" id="listCompleted">
+          <div class="empty-state">Loading tasks...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* ── Layout ──────────────────────────────────────────────── */
+.planner-wrap { max-width: 1200px; margin: 0 auto; padding: 5.5rem 2rem 3rem; }
+.planner-grid { display: grid; grid-template-columns: 350px 1fr; gap: 2rem; align-items: start; }
+@media (max-width: 900px) { .planner-grid { grid-template-columns: 1fr; } }
+
+/* ── Form Elements ───────────────────────────────────────── */
+.form-group { margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: .5rem; }
+.form-label { font-size: .85rem; font-weight: 600; color: var(--clr-text-muted); text-transform: uppercase; letter-spacing: .05em; }
+.form-input { background: var(--clr-bg-elevated); border: 1px solid var(--clr-border); color: var(--clr-text-main); padding: .8rem 1rem; border-radius: var(--radius-md); font-size: .95rem; font-family: inherit; transition: border-color .2s; }
+.form-input:focus { outline: none; border-color: var(--clr-accent); }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; } /* Make date icon visible on dark mode */
+
+/* ── Task Lists ──────────────────────────────────────────── */
+.task-section { margin-bottom: 2.5rem; }
+.section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; color: var(--clr-text-main); }
+.section-title i { width: 18px; height: 18px; }
+
+.task-list { display: flex; flex-direction: column; gap: .75rem; }
+.empty-state { color: var(--clr-text-muted); font-size: .9rem; padding: 1.5rem; text-align: center; background: var(--clr-bg-elevated); border: 1px dashed var(--clr-border); border-radius: var(--radius-md); }
+
+.task-card {
+  background: var(--gradient-card); border: 1px solid var(--clr-border);
+  padding: 1rem; border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  transition: transform .2s, box-shadow .2s;
+}
+.task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: var(--clr-accent); }
+
+.task-left { display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0; }
+.task-checkbox {
+  appearance: none; width: 24px; height: 24px;
+  border: 2px solid var(--clr-border); border-radius: 6px;
+  background: var(--clr-bg); cursor: pointer; position: relative;
+  transition: all .2s; flex-shrink: 0;
+}
+.task-checkbox:checked { background: var(--clr-success); border-color: var(--clr-success); }
+.task-checkbox:checked::after {
+  content: '✓'; position: absolute; color: white;
+  font-size: 14px; font-weight: bold; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.task-info { display: flex; flex-direction: column; gap: .25rem; overflow: hidden; }
+.task-title { font-weight: 600; font-size: 1rem; color: var(--clr-text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task-meta { display: flex; align-items: center; gap: .75rem; font-size: .8rem; color: var(--clr-text-muted); }
+.task-badge { padding: .2rem .5rem; border-radius: var(--radius-sm); font-size: .7rem; font-weight: 700; text-transform: uppercase; }
+
+.priority-high { background: hsl(0, 85%, 60%, .15); color: hsl(0, 85%, 70%); border: 1px solid hsl(0, 85%, 60%, .3); }
+.priority-medium { background: hsl(39, 100%, 50%, .15); color: hsl(39, 100%, 65%); border: 1px solid hsl(39, 100%, 50%, .3); }
+.priority-low { background: hsl(200, 100%, 50%, .15); color: hsl(200, 100%, 65%); border: 1px solid hsl(200, 100%, 50%, .3); }
+
+.task-right { display: flex; align-items: center; gap: .5rem; flex-shrink: 0; }
+.btn-del {
+  background: transparent; border: none; color: var(--clr-text-muted);
+  width: 32px; height: 32px; border-radius: var(--radius-sm);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all .2s;
+}
+.btn-del:hover { background: hsl(0, 85%, 60%, .1); color: hsl(0, 85%, 60%); }
+.btn-del i { width: 16px; height: 16px; }
+
+/* Completed styles */
+.task-card.is-completed { opacity: 0.6; border-color: transparent; }
+.task-card.is-completed .task-title { text-decoration: line-through; }
+</style>
+
+<script>
+// --- Initialize date input to today ---
+document.getElementById('taskDate').valueAsDate = new Date();
+
+// --- Fetch & Render Tasks ---
+async function fetchTasks() {
+  try {
+    const res = await fetch('/api/tasks');
+    const data = await res.json();
+    if (data.success) {
+      renderTasks(data.tasks);
+    }
+  } catch (err) {
+    console.error('Failed to load tasks', err);
+  }
+}
+
+function renderTasks(tasks) {
+  const listToday = document.getElementById('listToday');
+  const listUpcoming = document.getElementById('listUpcoming');
+  const listCompleted = document.getElementById('listCompleted');
+
+  listToday.innerHTML = '';
+  listUpcoming.innerHTML = '';
+  listCompleted.innerHTML = '';
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  let totalCount = tasks.length;
+  let completedCount = 0;
+
+  tasks.forEach(task => {
+    if (task.completed) completedCount++;
+
+    const card = document.createElement('div');
+    card.className = `task-card ${task.completed ? 'is-completed' : ''}`;
+    
+    // Badge logic
+    const pClass = `priority-${task.priority.toLowerCase()}`;
+    
+    card.innerHTML = `
+      <div class="task-left">
+        <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${task.id}, this.checked)">
+        <div class="task-info">
+          <div class="task-title">${task.task}</div>
+          <div class="task-meta">
+            <span><i data-lucide="book" style="width:12px;height:12px;margin-bottom:-2px;"></i> ${task.subject}</span>
+            <span class="task-badge ${pClass}">${task.priority}</span>
+            <span>Due: ${task.due_date}</span>
+          </div>
+        </div>
+      </div>
+      <div class="task-right">
+        <button class="btn-del" onclick="deleteTask(${task.id})" title="Delete Task"><i data-lucide="trash-2"></i></button>
+      </div>
+    `;
+
+    if (task.completed) {
+      listCompleted.appendChild(card);
+    } else if (task.due_date <= todayStr) {
+      listToday.appendChild(card);
+    } else {
+      listUpcoming.appendChild(card);
+    }
+  });
+
+  // Empty states
+  if (listToday.children.length === 0) listToday.innerHTML = '<div class="empty-state">No tasks due today. Awesome! <i data-lucide="smile"></i></div>';
+  if (listUpcoming.children.length === 0) listUpcoming.innerHTML = '<div class="empty-state">No upcoming tasks scheduled.</div>';
+  if (listCompleted.children.length === 0) listCompleted.innerHTML = '<div class="empty-state">No completed tasks yet.</div>';
+
+  // Progress
+  const pct = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+  document.getElementById('progressPct').textContent = `${pct}%`;
+  document.getElementById('progressBar').style.width = `${pct}%`;
+
+  lucide.createIcons();
+}
+
+// --- API Interactions ---
+async function addTask(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button');
+  btn.disabled = true;
+
+  const payload = {
+    subject: document.getElementById('taskSubject').value,
+    task: document.getElementById('taskName').value,
+    due_date: document.getElementById('taskDate').value,
+    priority: document.getElementById('taskPriority').value
+  };
+
+  try {
+    const res = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('taskForm').reset();
+      document.getElementById('taskDate').valueAsDate = new Date();
+      fetchTasks();
+      if (window.showToast) window.showToast('Task added successfully!', 'success');
+    }
+  } catch (err) {
+    if (window.showToast) window.showToast('Error adding task.', 'error');
+    else alert("Error adding task.");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function toggleTask(id, isCompleted) {
+  try {
+    await fetch(`/api/tasks/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed: isCompleted })
+    });
+    fetchTasks();
+  } catch (err) {
+    console.error("Error updating task", err);
+  }
+}
+
+async function deleteTask(id) {
+  if (!confirm("Are you sure you want to delete this task?")) return;
+  try {
+    await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+    fetchTasks();
+  } catch (err) {
+    console.error("Error deleting task", err);
+  }
+}
+
+// Initial fetch
+document.addEventListener('DOMContentLoaded', fetchTasks);
+</script>
+{% endblock %}

@@ -1,0 +1,607 @@
+{% extends "base.html" %}
+
+{% block title %}AI Flashcards — Study Assistant{% endblock %}
+{% block description %}Generate interactive 3D flashcards on any topic using AI.{% endblock %}
+
+{% block content %}
+<div class="notes-layout">
+  
+  <!-- Sidebar -->
+  <aside class="saved-sidebar">
+    <div class="sidebar-header">
+      <h3><i data-lucide="bookmark"></i> Saved Decks</h3>
+    </div>
+    <div id="savedDecksList" class="saved-list">
+      <div style="color: var(--clr-text-muted); font-size: 0.85rem;">Loading...</div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="notes-main fc-wrap">
+
+  <div class="test-header">
+    <div class="test-header-left">
+      <h1 class="test-title">AI Flashcards</h1>
+      <p class="test-subtitle">
+        Enter a topic or paste study material to generate a custom deck of interactive flashcards.
+      </p>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       STATE 1: SETUP
+       ========================================== -->
+  <div id="state-setup" class="fc-state-container active-state">
+    <div class="test-panel" style="max-width: 800px; margin: 0 auto;">
+      <div class="panel-head">
+        <span class="panel-title"><i data-lucide="layers"></i> Deck Configuration</span>
+      </div>
+      <div class="panel-body">
+        
+        <div class="form-group">
+          <label class="form-label" for="fcTopic">Topic (Optional if material provided)</label>
+          <input type="text" id="fcTopic" class="form-input" placeholder="e.g. French Vocabulary, Python Methods, Anatomy" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="fcMaterial">Study Material (Optional)</label>
+          <textarea id="fcMaterial" class="question-textarea" rows="4" placeholder="Paste specific text to generate cards from..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="fcCount">Number of Cards</label>
+            <select id="fcCount" class="form-input">
+              <option value="5" selected>5 Cards</option>
+              <option value="10">10 Cards</option>
+              <option value="15">15 Cards</option>
+              <option value="20">20 Cards</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="setupError" class="setup-error" style="display: none;"></div>
+
+        <div class="form-actions" style="margin-top: 1.5rem;">
+          <button class="btn btn-primary btn-ask" id="btnGenerate" onclick="generateCards()" style="width: 100%;">
+            <i data-lucide="sparkles"></i> Generate Deck
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       STATE 2: LOADING
+       ========================================== -->
+  <div id="state-loading" class="fc-state-container">
+    <div class="loading-box">
+      <div class="spinner spinner-large"></div>
+      <h2 style="margin-top: 1.5rem;">Generating your flashcards…</h2>
+      <p style="color: var(--clr-text-muted); margin-top: .5rem;">This takes about 5-10 seconds depending on the number of cards.</p>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       STATE 3: ACTIVE FLASHCARDS
+       ========================================== -->
+  <div id="state-active" class="fc-state-container">
+    
+    <div class="fc-header-actions">
+      <div class="fc-progress">
+        <div class="fc-progress-text">
+          <span id="fcLearnedCount" style="color: var(--clr-success); font-weight: bold;">0</span> / <span id="fcTotalLearned">10</span> Learned
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="fcProgressBar" style="background: var(--clr-success); width: 0%;"></div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" onclick="resetApp()"><i data-lucide="refresh-cw"></i> New Deck</button>
+    </div>
+
+    <!-- The 3D Flashcard -->
+    <div class="fc-scene" onclick="flipCard()">
+      <div class="fc-card" id="fcInner">
+        
+        <!-- Front -->
+        <div class="fc-face fc-front">
+          <div class="fc-face-label">Question</div>
+          <div class="fc-content" id="fcFrontText">...</div>
+          <div class="fc-hint"><i data-lucide="corner-down-right"></i> Click to reveal answer</div>
+        </div>
+        
+        <!-- Back -->
+        <div class="fc-face fc-back">
+          <div class="fc-face-label">Answer</div>
+          <div class="fc-content" id="fcBackText">...</div>
+          <div class="fc-hint"><i data-lucide="corner-down-right"></i> Click to hide answer</div>
+        </div>
+        
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="fc-controls">
+      <div class="fc-controls-top">
+        <button class="btn fc-btn-nav" onclick="prevCard()"><i data-lucide="chevron-left"></i></button>
+        <div class="fc-counter">Card <span id="fcCurrentIndex">1</span> of <span id="fcTotalCards">10</span></div>
+        <button class="btn fc-btn-nav" onclick="nextCard()"><i data-lucide="chevron-right"></i></button>
+      </div>
+
+      <div class="fc-controls-bottom">
+        <button class="btn fc-btn-action" onclick="shuffleDeck()">
+          <i data-lucide="shuffle"></i> Shuffle
+        </button>
+        <button class="btn fc-btn-action" id="btnMarkLearned" onclick="toggleLearned()">
+          <i data-lucide="check-circle"></i> <span id="textMarkLearned">Mark as Learned</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+  </div><!-- /notes-main -->
+</div><!-- /notes-layout -->
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* ── Layout & Containers ──────────────────────────────────── */
+.fc-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 5.5rem 2rem 3rem;
+}
+.fc-state-container { display: none; animation: fadeInDown .4s ease both; }
+.fc-state-container.active-state { display: block; }
+
+/* ── Setup Form (reusing some styles) ─────────────────────── */
+.form-group { margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: .5rem; }
+.form-row { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+@media(min-width: 600px) { .form-row { grid-template-columns: 1fr 1fr; } }
+.form-label { font-size: .85rem; font-weight: 600; color: var(--clr-text-muted); text-transform: uppercase; letter-spacing: .05em; }
+.form-input {
+  background: var(--clr-bg-elevated); border: 1px solid var(--clr-border);
+  color: var(--clr-text-main); padding: .8rem 1rem; border-radius: var(--radius-md);
+  font-size: .95rem; font-family: inherit; transition: border-color .2s;
+}
+.form-input:focus { outline: none; border-color: var(--clr-accent); }
+.setup-error {
+  background: hsl(0,85%,60%,.1); border: 1px dashed hsl(0,85%,60%,.4);
+  color: hsl(0,85%,70%); padding: .75rem; border-radius: var(--radius-sm);
+  font-size: .85rem; margin-top: .5rem;
+}
+
+/* ── Loading State ─────────────────────────────────────────── */
+.loading-box {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 5rem 2rem; text-align: center;
+}
+.spinner-large { width: 48px; height: 48px; border-width: 4px; }
+
+/* ── Active Flashcards Header ─────────────────────────────── */
+.fc-header-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 2rem;
+}
+.fc-progress { flex: 1; max-width: 300px; }
+.fc-progress-text { font-size: .85rem; margin-bottom: .5rem; color: var(--clr-text-muted); }
+.progress-bar-bg { height: 6px; background: var(--clr-bg-elevated); border-radius: var(--radius-full); overflow: hidden; }
+.progress-bar-fill { height: 100%; transition: width 0.3s ease; }
+
+/* ── 3D Flashcard ──────────────────────────────────────────── */
+.fc-scene {
+  width: 100%;
+  height: 400px;
+  perspective: 1200px; /* 3D depth */
+  cursor: pointer;
+  margin-bottom: 2rem;
+}
+.fc-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.fc-card.is-flipped {
+  transform: rotateY(180deg);
+}
+.fc-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden; /* Hide the back when facing away */
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  border: 1px solid var(--clr-border);
+}
+
+.fc-front {
+  background: var(--gradient-card);
+}
+.fc-back {
+  background: var(--clr-bg-elevated);
+  transform: rotateY(180deg);
+  border-color: var(--clr-accent);
+}
+
+.fc-face-label {
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--clr-text-muted);
+  margin-bottom: 1rem;
+}
+
+.fc-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--clr-text-main);
+  overflow-y: auto;
+}
+.fc-back .fc-content {
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--clr-text-main);
+  text-align: left;
+  align-items: flex-start;
+  padding-top: 1rem;
+}
+
+.fc-hint {
+  text-align: center;
+  font-size: .85rem;
+  color: var(--clr-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  opacity: 0.6;
+}
+.fc-hint i { width: 14px; height: 14px; }
+
+/* Learned card state overrides */
+.fc-scene.is-learned .fc-front,
+.fc-scene.is-learned .fc-back {
+  border-color: var(--clr-success);
+  box-shadow: 0 10px 30px hsla(152, 69%, 48%, 0.1);
+}
+
+/* ── Controls ──────────────────────────────────────────────── */
+.fc-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+.fc-controls-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--clr-bg-elevated);
+  padding: .5rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--clr-border);
+}
+.fc-btn-nav {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--clr-bg);
+  color: var(--clr-text-main);
+  border: 1px solid var(--clr-border);
+}
+.fc-btn-nav:hover { background: var(--clr-accent); color: #fff; border-color: var(--clr-accent); }
+.fc-counter {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--clr-text-main);
+}
+
+.fc-controls-bottom {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+.fc-btn-action {
+  flex: 1;
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  padding: .8rem 1.2rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  background: var(--clr-bg-elevated);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text-main);
+  transition: all .2s;
+}
+.fc-btn-action:hover { background: var(--clr-bg); }
+.fc-btn-action.active-success {
+  background: hsl(152, 69%, 48%, .15);
+  border-color: var(--clr-success);
+  color: var(--clr-success);
+}
+</style>
+
+<script>
+// --- State ---
+let deck = []; // array of { front, back, id }
+let currentIndex = 0;
+let learnedIds = new Set();
+let isFlipped = false;
+
+// --- View Transition Logic ---
+function switchState(stateId) {
+  document.querySelectorAll('.fc-state-container').forEach(el => {
+    el.classList.remove('active-state');
+  });
+  document.getElementById(stateId).classList.add('active-state');
+  window.scrollTo(0, 0);
+}
+
+// --- Setup & API Call ---
+async function generateCards() {
+  const topic = document.getElementById('fcTopic').value.trim();
+  const material = document.getElementById('fcMaterial').value.trim();
+  const count = document.getElementById('fcCount').value;
+  const errorEl = document.getElementById('setupError');
+
+  if (!topic && !material) {
+    errorEl.textContent = 'Please provide a topic or paste study material.';
+    errorEl.style.display = 'block';
+    return;
+  }
+  errorEl.style.display = 'none';
+
+  switchState('state-loading');
+
+  try {
+    const res = await fetch('/api/flashcards/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, material, count })
+    });
+    const data = await res.json();
+
+    if (data.success && data.flashcards && data.flashcards.length > 0) {
+      // Initialize deck with unique IDs
+      deck = data.flashcards.map((c, i) => ({ ...c, id: i }));
+      learnedIds.clear();
+      currentIndex = 0;
+      isFlipped = false;
+      document.getElementById('fcTotalCards').textContent = deck.length;
+      document.getElementById('fcTotalLearned').textContent = deck.length;
+      updateProgress();
+      renderCard();
+      switchState('state-active');
+      saveDeck(topic || "Custom Deck", deck);
+    } else {
+      errorEl.textContent = data.error || 'Failed to generate flashcards. Please try again.';
+      errorEl.style.display = 'block';
+      switchState('state-setup');
+    }
+  } catch (err) {
+    errorEl.textContent = 'Network error while generating flashcards.';
+    errorEl.style.display = 'block';
+    switchState('state-setup');
+  }
+}
+
+function resetApp() {
+  document.getElementById('fcTopic').value = '';
+  document.getElementById('fcMaterial').value = '';
+  switchState('state-setup');
+}
+
+// ── Saved Decks ───────────────────────────────────────────────
+async function loadSavedDecks() {
+  const list = document.getElementById('savedDecksList');
+  try {
+    const res = await fetch('/api/flashcards/list');
+    const data = await res.json();
+    if (data.success) {
+      if (data.decks.length === 0) {
+        list.innerHTML = '<div style="color: var(--clr-text-muted); font-size: 0.85rem;">No saved decks yet.</div>';
+        return;
+      }
+      
+      list.innerHTML = data.decks.map(deck => `
+        <div class="saved-item" onclick="loadDeck(${deck.id})">
+          <div class="saved-item-content">
+            <div class="saved-item-title">${deck.title || 'Untitled Deck'}</div>
+            <div class="saved-item-date">${new Date(deck.created_at).toLocaleDateString()}</div>
+          </div>
+          <button class="btn-delete-saved" onclick="event.stopPropagation(); deleteDeck(${deck.id})" title="Delete">
+            <i data-lucide="trash-2"></i>
+          </button>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+  } catch (err) {
+    list.innerHTML = '<div style="color: var(--clr-red); font-size: 0.85rem;">Failed to load saved decks.</div>';
+  }
+}
+
+async function loadDeck(id) {
+  try {
+    const res = await fetch(`/api/flashcards/${id}`);
+    const data = await res.json();
+    if (data.success) {
+      const cards = JSON.parse(data.deck.cards_json);
+      if (cards && cards.length > 0) {
+        deck = cards;
+        learnedIds.clear();
+        currentIndex = 0;
+        isFlipped = false;
+        document.getElementById('fcTotalCards').textContent = deck.length;
+        document.getElementById('fcTotalLearned').textContent = deck.length;
+        updateProgress();
+        renderCard();
+        switchState('state-active');
+      }
+    }
+  } catch (err) {
+    alert('Failed to load deck.');
+  }
+}
+
+async function deleteDeck(id) {
+  if (!confirm('Are you sure you want to delete this deck?')) return;
+  try {
+    const res = await fetch(`/api/flashcards/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      loadSavedDecks();
+      resetApp();
+    }
+  } catch (err) {
+    alert('Failed to delete deck.');
+  }
+}
+
+async function saveDeck(topic, cards) {
+  try {
+    const res = await fetch('/api/flashcards/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: topic,
+        cards: cards
+      })
+    });
+    if (res.ok) {
+      loadSavedDecks();
+    }
+  } catch (err) {
+    console.error('Failed to save deck:', err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadSavedDecks();
+});
+
+// Initialize on page load
+switchState('state-setup');
+
+// --- Card Interactions ---
+function renderCard() {
+  const card = deck[currentIndex];
+  document.getElementById('fcCurrentIndex').textContent = currentIndex + 1;
+  document.getElementById('fcFrontText').innerHTML = formatText(card.front);
+  document.getElementById('fcBackText').innerHTML = formatText(card.back);
+
+  // Reset flip state without animation if needed
+  isFlipped = false;
+  document.getElementById('fcInner').classList.remove('is-flipped');
+
+  updateLearnedUI();
+}
+
+function formatText(text) {
+  // Simple markdown-like bold processing
+  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  const inner = document.getElementById('fcInner');
+  if (isFlipped) {
+    inner.classList.add('is-flipped');
+  } else {
+    inner.classList.remove('is-flipped');
+  }
+}
+
+function nextCard() {
+  if (currentIndex < deck.length - 1) {
+    currentIndex++;
+    renderCard();
+  } else {
+    // Loop back to start
+    currentIndex = 0;
+    renderCard();
+  }
+}
+
+function prevCard() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    renderCard();
+  } else {
+    // Loop to end
+    currentIndex = deck.length - 1;
+    renderCard();
+  }
+}
+
+function shuffleDeck() {
+  // Fisher-Yates shuffle
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  currentIndex = 0;
+  renderCard();
+}
+
+// --- Learned State ---
+function toggleLearned() {
+  const cardId = deck[currentIndex].id;
+  if (learnedIds.has(cardId)) {
+    learnedIds.delete(cardId);
+  } else {
+    learnedIds.add(cardId);
+  }
+  updateLearnedUI();
+  updateProgress();
+}
+
+function updateLearnedUI() {
+  const cardId = deck[currentIndex].id;
+  const btn = document.getElementById('btnMarkLearned');
+  const textSpan = document.getElementById('textMarkLearned');
+  const scene = document.querySelector('.fc-scene');
+
+  if (learnedIds.has(cardId)) {
+    btn.classList.add('active-success');
+    textSpan.textContent = 'Learned';
+    scene.classList.add('is-learned');
+  } else {
+    btn.classList.remove('active-success');
+    textSpan.textContent = 'Mark as Learned';
+    scene.classList.remove('is-learned');
+  }
+}
+
+function updateProgress() {
+  const count = learnedIds.size;
+  document.getElementById('fcLearnedCount').textContent = count;
+  const pct = (count / deck.length) * 100;
+  document.getElementById('fcProgressBar').style.width = `${pct}%`;
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('state-active').classList.contains('active-state')) {
+    if (e.key === 'ArrowRight') nextCard();
+    if (e.key === 'ArrowLeft') prevCard();
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      flipCard();
+    }
+  }
+});
+</script>
+{% endblock %}

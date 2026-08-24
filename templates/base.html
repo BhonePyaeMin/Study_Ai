@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}AI Study Assistant{% endblock %}</title>
+  <meta name="description" content="{% block description %}An AI-powered study assistant for university students.{% endblock %}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <!-- Theme Init Script to prevent FOUC -->
+  <script>
+    const savedTheme = localStorage.getItem('study_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    if (localStorage.getItem('study_compact') === 'true') {
+      document.documentElement.classList.add('compact-mode');
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a class="nav-brand" href="{{ url_for('index') }}">
+        <span class="brand-icon"><i data-lucide="sparkles"></i></span>
+        StudyAI
+      </a>
+      <ul class="nav-links">
+        <li><a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Home</a></li>
+        {% if session.get('user_id') %}
+        <li><a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a></li>
+        <li><a href="{{ url_for('tutor') }}" class="nav-link {% if request.endpoint == 'tutor' %}active{% endif %}">AI Tutor</a></li>
+        <li><a href="{{ url_for('notes') }}" class="nav-link {% if request.endpoint == 'notes' %}active{% endif %}">Study Notes</a></li>
+        <li><a href="{{ url_for('quiz') }}" class="nav-link {% if request.endpoint == 'quiz' %}active{% endif %}">Quiz Generator</a></li>
+        <li><a href="{{ url_for('flashcards') }}" class="nav-link {% if request.endpoint == 'flashcards' %}active{% endif %}">Flashcards</a></li>
+        <li><a href="{{ url_for('planner') }}" class="nav-link {% if request.endpoint == 'planner' %}active{% endif %}">Study Planner</a></li>
+        <li><a href="{{ url_for('settings') }}" class="nav-link {% if request.endpoint == 'settings' %}active{% endif %}">Settings</a></li>
+        <li><a href="{{ url_for('logout') }}" class="nav-link">Logout</a></li>
+        {% else %}
+        <li><a href="{{ url_for('about') }}" class="nav-link {% if request.endpoint == 'about' %}active{% endif %}">About</a></li>
+        <li><a href="{{ url_for('login') }}" class="nav-link {% if request.endpoint == 'login' %}active{% endif %}">Sign In</a></li>
+        <li><a href="{{ url_for('register') }}" class="nav-link btn-signup" style="background: var(--clr-primary); color: white; border-radius: 8px; padding: 0.25rem 0.75rem;">Get Started</a></li>
+        {% endif %}
+      </ul>
+      <div class="nav-actions">
+        <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+          <i data-lucide="sun" id="themeIcon"></i>
+        </button>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+          <i data-lucide="menu"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Page content -->
+  <main id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <span class="brand-icon"><i data-lucide="sparkles"></i></span>
+        <span>StudyAI</span>
+      </div>
+      <p class="footer-text">Built for university students, powered by Gemini AI.</p>
+      <p class="footer-copy">&copy; 2026 AI-Based Study Assistant. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <div id="toast-container"></div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script>
+    // Initialize Icons
+    lucide.createIcons();
+
+    // Theme Toggle Logic
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const docEl = document.documentElement;
+
+    function updateThemeIcon() {
+      const current = docEl.getAttribute('data-theme');
+      if (current === 'light') {
+        themeIcon.setAttribute('data-lucide', 'moon');
+      } else {
+        themeIcon.setAttribute('data-lucide', 'sun');
+      }
+      lucide.createIcons();
+    }
+    updateThemeIcon();
+
+    themeToggleBtn.addEventListener('click', () => {
+      const current = docEl.getAttribute('data-theme');
+      const next = current === 'light' ? 'dark' : 'light';
+      docEl.setAttribute('data-theme', next);
+      localStorage.setItem('study_theme', next);
+      updateThemeIcon();
+    });
+
+    // Mobile Nav Toggle
+    const navToggle = document.getElementById('navToggle');
+    const navLinks = document.querySelector('.nav-links');
+    navToggle.addEventListener('click', () => {
+      navLinks.classList.toggle('nav-open');
+    });
+
+    // Global Toast Function
+    window.showToast = function(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.innerHTML = `
+        <div class="toast-icon">
+          <i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}"></i>
+        </div>
+        <div class="toast-message">${message}</div>
+      `;
+      container.appendChild(toast);
+      lucide.createIcons();
+      setTimeout(() => {
+        toast.style.animation = 'fadeOut 0.3s forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    };
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

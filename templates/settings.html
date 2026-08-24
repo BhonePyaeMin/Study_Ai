@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Settings — AI Study Assistant{% endblock %}
+{% block description %}Configure your StudyAI experience and manage your data.{% endblock %}
+
+{% block content %}
+<div class="settings-wrap">
+  <div class="test-header">
+    <div class="test-header-left">
+      <h1 class="test-title">Settings</h1>
+      <p class="test-subtitle">Customize your experience and manage your preferences.</p>
+    </div>
+  </div>
+
+  <div class="settings-grid">
+    
+    <!-- Left Navigation -->
+    <div class="settings-nav">
+      <a href="#appearance" class="settings-link active" onclick="switchSettingsTab('appearance', this); return false;"><i data-lucide="palette"></i> Appearance</a>
+      <a href="#notifications" class="settings-link" onclick="switchSettingsTab('notifications', this); return false;"><i data-lucide="bell"></i> Notifications</a>
+      <a href="#data" class="settings-link" onclick="switchSettingsTab('data', this); return false;"><i data-lucide="database"></i> Data & Storage</a>
+      <a href="#privacy" class="settings-link" onclick="switchSettingsTab('privacy', this); return false;"><i data-lucide="shield"></i> Privacy</a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="settings-main">
+      
+      <!-- Appearance Section -->
+      <div class="test-panel settings-section active-section" id="appearance">
+        <div class="panel-head">
+          <span class="panel-title"><i data-lucide="palette"></i> Appearance</span>
+        </div>
+        <div class="panel-body">
+          <div class="setting-item">
+            <div class="setting-info">
+              <h3 class="setting-title">Theme Preference</h3>
+              <p class="setting-desc">Choose how StudyAI looks to you. Select between Light and Dark mode.</p>
+            </div>
+            <div class="setting-action">
+              <select id="themeSelect" class="form-input" style="min-width: 150px;" onchange="changeTheme(this.value)">
+                <option value="light">Light Mode</option>
+                <option value="dark">Dark Mode</option>
+              </select>
+            </div>
+          </div>
+          
+          <hr class="setting-divider">
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <h3 class="setting-title">Compact Layout</h3>
+              <p class="setting-desc">Reduce spacing between elements to fit more content on screen.</p>
+            </div>
+            <div class="setting-action">
+              <label class="toggle-switch">
+                <input type="checkbox" id="compactToggle" onchange="toggleCompact(this.checked)">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications Section -->
+      <div class="test-panel settings-section" id="notifications">
+        <div class="panel-head">
+          <span class="panel-title"><i data-lucide="bell"></i> Notifications</span>
+        </div>
+        <div class="panel-body">
+          <p class="setting-desc" style="padding: 1rem 0;">Notification preferences will be available in a future update.</p>
+        </div>
+      </div>
+
+      <!-- Data Section -->
+      <div class="test-panel settings-section" id="data">
+        <div class="panel-head">
+          <span class="panel-title"><i data-lucide="database"></i> Data & Storage</span>
+        </div>
+        <div class="panel-body">
+          <div class="setting-item">
+            <div class="setting-info">
+              <h3 class="setting-title">Clear Local Data</h3>
+              <p class="setting-desc">Erase all saved tasks, quizzes, and flashcards from your SQLite database.</p>
+            </div>
+            <div class="setting-action">
+              <button class="btn btn-outline-danger" onclick="clearData()">
+                <i data-lucide="trash-2"></i> Clear Data
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy Section -->
+      <div class="test-panel settings-section" id="privacy">
+        <div class="panel-head">
+          <span class="panel-title"><i data-lucide="shield"></i> Privacy</span>
+        </div>
+        <div class="panel-body">
+          <p class="setting-desc" style="padding: 1rem 0;">Your data is stored locally in your SQLite database. StudyAI does not track your activity or send your data to third parties.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* ── Layout ──────────────────────────────────────────────── */
+.settings-wrap { max-width: 1000px; margin: 0 auto; padding: 5.5rem 2rem 3rem; }
+.settings-grid { display: grid; grid-template-columns: 240px 1fr; gap: 3rem; align-items: start; margin-top: 2rem; }
+@media (max-width: 768px) { .settings-grid { grid-template-columns: 1fr; gap: 2rem; } }
+
+/* ── Navigation ──────────────────────────────────────────── */
+.settings-nav { display: flex; flex-direction: column; gap: .5rem; }
+.settings-link {
+  display: flex; align-items: center; gap: .75rem; line-height: 1;
+  padding: .75rem 1rem; border-radius: var(--radius-md);
+  color: var(--clr-text-muted); font-weight: 500; font-size: .95rem;
+  transition: all .2s; border: 1px solid transparent;
+}
+.settings-link:hover { background: var(--clr-bg-elevated); color: var(--clr-text); }
+.settings-link.active {
+  background: hsl(250, 84%, 60%, 0.1);
+  color: var(--clr-primary);
+  border-color: hsl(250, 84%, 60%, 0.2);
+  font-weight: 600;
+}
+.settings-link .lucide { width: 18px; height: 18px; display: block; }
+.panel-title {
+  font-size: 1.25rem; font-weight: 600; color: var(--clr-text-main); margin-bottom: 1rem;
+  display: flex; align-items: center; gap: .5rem; line-height: 1;
+}
+.panel-title .lucide { width: 20px; height: 20px; color: var(--clr-primary); display: block; }
+.settings-section { display: none; }
+.settings-section.active-section { display: block; animation: fadeIn 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Items ───────────────────────────────────────────────── */
+.setting-item { display: flex; align-items: center; justify-content: space-between; gap: 2rem; }
+@media (max-width: 500px) { .setting-item { flex-direction: column; align-items: flex-start; gap: 1rem; } }
+.setting-title { font-size: 1.05rem; font-weight: 600; color: var(--clr-text-main); margin-bottom: .25rem; }
+.setting-desc { font-size: .85rem; color: var(--clr-text-muted); }
+.setting-divider { border: none; border-top: 1px solid var(--clr-border); margin: 1.5rem 0; }
+
+.form-input {
+  background: var(--clr-bg); border: 1px solid var(--clr-border);
+  color: var(--clr-text-main); padding: .6rem 1rem; border-radius: var(--radius-md);
+  font-size: .95rem; outline: none;
+}
+.form-input:focus { border-color: var(--clr-primary); }
+
+.btn-outline-danger {
+  background: transparent; border: 1px solid hsl(0, 85%, 60%, 0.4); color: hsl(0, 85%, 60%);
+}
+.btn-outline-danger:hover { background: hsl(0, 85%, 60%, 0.1); }
+
+/* ── Toggle Switch ───────────────────────────────────────── */
+.toggle-switch {
+  position: relative; display: inline-block; width: 44px; height: 24px;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+  background-color: var(--clr-border); transition: .3s; border-radius: 24px;
+}
+.slider:before {
+  position: absolute; content: ""; height: 18px; width: 18px;
+  left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%;
+}
+input:checked + .slider { background-color: var(--clr-primary); }
+input:checked + .slider:before { transform: translateX(20px); }
+</style>
+
+<script>
+  // Initialize the select box to match current theme
+  document.addEventListener('DOMContentLoaded', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const select = document.getElementById('themeSelect');
+    if (select) select.value = currentTheme;
+  });
+
+  function changeTheme(val) {
+    document.documentElement.setAttribute('data-theme', val);
+    localStorage.setItem('study_theme', val);
+    
+    // Update the icon in the global navbar if it exists
+    const themeIcon = document.getElementById('themeIcon');
+    if (themeIcon) {
+      themeIcon.setAttribute('data-lucide', val === 'light' ? 'moon' : 'sun');
+      lucide.createIcons();
+    }
+    window.showToast('Theme updated successfully.', 'success');
+  }
+
+  function switchSettingsTab(sectionId, clickedEl) {
+    // Update active link
+    document.querySelectorAll('.settings-link').forEach(el => el.classList.remove('active'));
+    clickedEl.classList.add('active');
+
+    // Update active section
+    document.querySelectorAll('.settings-section').forEach(el => el.classList.remove('active-section'));
+    document.getElementById(sectionId).classList.add('active-section');
+  }
+
+  // Compact Mode logic
+  const compactToggle = document.getElementById('compactToggle');
+  const isCompact = localStorage.getItem('study_compact') === 'true';
+  compactToggle.checked = isCompact;
+  
+  function toggleCompact(isChecked) {
+    localStorage.setItem('study_compact', isChecked);
+    if (isChecked) {
+      document.documentElement.classList.add('compact-mode');
+    } else {
+      document.documentElement.classList.remove('compact-mode');
+    }
+  }
+
+  // Clear Data logic
+  function clearData() {
+    if (!confirm('Are you sure? This will delete all your study tasks and quiz history. This cannot be undone.')) {
+      return;
+    }
+    
+    fetch('/api/clear-data', { method: 'POST' })
+      .then(res => res.json())
+      .then(data => {
+        if(data.success) {
+          window.showToast('Data cleared successfully.', 'success');
+        } else {
+          window.showToast('Error clearing data.', 'error');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        window.showToast('Network error while clearing data.', 'error');
+      });
+  }
+</script>
+{% endblock %}

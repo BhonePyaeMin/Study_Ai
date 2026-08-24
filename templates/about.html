@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}About — AI Study Assistant{% endblock %}
+{% block description %}Learn more about the AI-Based Study Assistant project and the technology behind it.{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <h1 class="page-title">About StudyAI</h1>
+  <p class="page-subtitle">
+    A beginner-friendly AI study web app built for university students.
+  </p>
+</section>
+
+<section class="placeholder-section">
+  <div class="cards-grid" style="margin-bottom:1.5rem;">
+    <div class="card">
+      <span class="card-icon"><i data-lucide="zap"></i></span>
+      <h3 class="card-title">Flask Backend</h3>
+      <p class="card-desc">A lightweight Python web framework that keeps things simple and fast.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon"><i data-lucide="cpu"></i></span>
+      <h3 class="card-title">Gemini AI</h3>
+      <p class="card-desc">Google's state-of-the-art multimodal AI model powers all study features.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon"><i data-lucide="database"></i></span>
+      <h3 class="card-title">SQLite Database</h3>
+      <p class="card-desc">A zero-configuration database that stores your study history locally.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon"><i data-lucide="file-text"></i></span>
+      <h3 class="card-title">PDF Extraction</h3>
+      <p class="card-desc">Locally parses your PDF study materials using PyPDF to generate high-quality AI quizzes.</p>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
