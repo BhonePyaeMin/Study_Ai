@@ -1,5 +1,7 @@
 # AI-Based Study Assistant
 
+🌟 **Live Demo:** [https://studyai-production-b064.up.railway.app](https://studyai-production-b064.up.railway.app)
+
 A beginner-friendly AI study web application for university students, built with **Flask**, **SQLite**, and the **Gemini API**.
 
 ---
